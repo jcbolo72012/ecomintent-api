@@ -6,8 +6,8 @@
 |----------|-----|
 | Modal API endpoint | https://john-72391--ecomintent-api-fastapi-app.modal.run |
 | HuggingFace model | https://huggingface.co/JohnBolognino/ecomintent-distilbert |
-| RapidAPI listing | [RAPIDAPI_URL — complete Section B5 in 02_HUMAN_TODOS.md] |
-| GitHub repo | [GITHUB_URL — complete Section B6 in 02_HUMAN_TODOS.md] |
+| RapidAPI listing | https://rapidapi.com/john-UG9kfZiW5/api/ecomintent-e-commerce-intent-classifie |
+| GitHub repo | https://github.com/jcbolo72012/ecomintent-api |
 
 ---
 

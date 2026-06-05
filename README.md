@@ -1,7 +1,7 @@
 # EcomIntent API
 
 [![HuggingFace](https://img.shields.io/badge/🤗%20HuggingFace-Model-yellow)](https://huggingface.co/JohnBolognino/ecomintent-distilbert)
-[![RapidAPI](https://img.shields.io/badge/RapidAPI-Listed-blue)](RAPIDAPI_URL_PLACEHOLDER)
+[![RapidAPI](https://img.shields.io/badge/RapidAPI-Listed-blue)](https://rapidapi.com/john-UG9kfZiW5/api/ecomintent-e-commerce-intent-classifie)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue)](https://python.org)
 
@@ -123,7 +123,7 @@ Returns model version, device, and status.
 
 ## Pricing
 
-Available via [RapidAPI](RAPIDAPI_URL_PLACEHOLDER):
+Available via [RapidAPI](https://rapidapi.com/john-UG9kfZiW5/api/ecomintent-e-commerce-intent-classifie):
 
 | Plan | Price | Requests/Month | Overage |
 |------|-------|----------------|---------|
@@ -202,8 +202,8 @@ python scripts/test_api_local.py
 ## Links
 
 - **HuggingFace Model:** [https://huggingface.co/JohnBolognino/ecomintent-distilbert](https://huggingface.co/JohnBolognino/ecomintent-distilbert)
-- **RapidAPI Listing:** [RAPIDAPI_URL_PLACEHOLDER](RAPIDAPI_URL_PLACEHOLDER)
-- **Live API Endpoint:** [MODAL_ENDPOINT_PLACEHOLDER](MODAL_ENDPOINT_PLACEHOLDER)
+- **RapidAPI Listing:** [https://rapidapi.com/john-UG9kfZiW5/api/ecomintent-e-commerce-intent-classifie](https://rapidapi.com/john-UG9kfZiW5/api/ecomintent-e-commerce-intent-classifie)
+- **Live API Endpoint:** [https://john-72391--ecomintent-api-fastapi-app.modal.run](https://john-72391--ecomintent-api-fastapi-app.modal.run)
 
 ---
 

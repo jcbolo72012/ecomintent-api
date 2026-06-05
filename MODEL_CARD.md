@@ -31,7 +31,7 @@ model-index:
 
 Fine-tuned DistilBERT for classifying e-commerce customer support tickets into 9 intent categories. Beats GPT-4o mini on this task at 15x lower cost and 50x lower latency.
 
-**Live API:** [RapidAPI Listing](RAPIDAPI_URL_PLACEHOLDER) | **GitHub:** [ecomintent-api](GITHUB_URL_PLACEHOLDER)
+**Live API:** [RapidAPI Listing](https://rapidapi.com/john-UG9kfZiW5/api/ecomintent-e-commerce-intent-classifie) | **GitHub:** [ecomintent-api](https://github.com/jcbolo72012/ecomintent-api)
 
 ## Model Description
 
@@ -156,7 +156,7 @@ from transformers import pipeline
 
 classifier = pipeline(
     "text-classification",
-    model="YOUR_HF_USERNAME/ecomintent-distilbert",
+    model="JohnBolognino/ecomintent-distilbert",
     top_k=None,
 )
 
@@ -175,7 +175,7 @@ from transformers import pipeline
 
 classifier = pipeline(
     "text-classification",
-    model="YOUR_HF_USERNAME/ecomintent-distilbert",
+    model="JohnBolognino/ecomintent-distilbert",
     device=0,  # GPU
     top_k=1,
 )
@@ -212,7 +212,7 @@ If you use this model in research, please cite:
   title={EcomIntent: Fine-tuned DistilBERT for E-commerce Intent Classification},
   author={YOUR_NAME},
   year={2024},
-  url={https://huggingface.co/YOUR_HF_USERNAME/ecomintent-distilbert}
+  url={https://huggingface.co/JohnBolognino/ecomintent-distilbert}
 }
 ```
 
