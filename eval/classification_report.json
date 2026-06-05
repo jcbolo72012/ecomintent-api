@@ -1,0 +1,69 @@
+{
+  "WISMO": {
+    "precision": 1.0,
+    "recall": 0.9978880675818373,
+    "f1-score": 0.9989429175475687,
+    "support": 947.0
+  },
+  "RETURN_REQUEST": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1-score": 1.0,
+    "support": 880.0
+  },
+  "EXCHANGE_REQUEST": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1-score": 1.0,
+    "support": 378.0
+  },
+  "CANCEL_ORDER": {
+    "precision": 0.9957805907172996,
+    "recall": 1.0,
+    "f1-score": 0.9978858350951374,
+    "support": 236.0
+  },
+  "DAMAGED_ITEM": {
+    "precision": 0.997872340425532,
+    "recall": 1.0,
+    "f1-score": 0.9989350372736954,
+    "support": 469.0
+  },
+  "BILLING_DISPUTE": {
+    "precision": 1.0,
+    "recall": 0.9970457902511078,
+    "f1-score": 0.9985207100591716,
+    "support": 677.0
+  },
+  "PRODUCT_QUESTION": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1-score": 1.0,
+    "support": 664.0
+  },
+  "ACCOUNT_ISSUE": {
+    "precision": 0.9989451476793249,
+    "recall": 1.0,
+    "f1-score": 0.9994722955145119,
+    "support": 947.0
+  },
+  "OTHER": {
+    "precision": 0.9978902953586498,
+    "recall": 0.9989440337909187,
+    "f1-score": 0.9984168865435357,
+    "support": 947.0
+  },
+  "accuracy": 0.9991863303498779,
+  "macro avg": {
+    "precision": 0.9989431526867563,
+    "recall": 0.9993197657359849,
+    "f1-score": 0.9991304091148469,
+    "support": 6145.0
+  },
+  "weighted avg": {
+    "precision": 0.9991878782141284,
+    "recall": 0.9991863303498779,
+    "f1-score": 0.9991863480228467,
+    "support": 6145.0
+  }
+}

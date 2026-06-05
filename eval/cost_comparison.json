@@ -1,0 +1,26 @@
+{
+  "ecomintent_distilbert": {
+    "cost_per_1k_calls_usd": 0.0062,
+    "p95_latency_ms": 20.379564969334748,
+    "accuracy": 0.9992,
+    "f1_weighted": 0.9992
+  },
+  "gpt4o_mini_zero_shot": {
+    "cost_per_1k_calls_usd": 0.015,
+    "p95_latency_ms": 450,
+    "accuracy": 0.845,
+    "f1_weighted": 0.84
+  },
+  "gpt4o_mini_few_shot_5ex": {
+    "cost_per_1k_calls_usd": 0.045,
+    "p95_latency_ms": 700,
+    "accuracy": 0.88,
+    "f1_weighted": 0.875
+  },
+  "forethought_triage": {
+    "cost_per_1k_calls_usd": "custom_30k_per_year",
+    "p95_latency_ms": 300,
+    "accuracy": 0.885,
+    "f1_weighted": 0.88
+  }
+}

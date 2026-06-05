@@ -1,0 +1,24 @@
+{
+  "model": "training/best_model",
+  "test_accuracy": 0.9992,
+  "f1_weighted": 0.9992,
+  "f1_macro": 0.9991,
+  "latency": {
+    "p50_ms": 5.414450017269701,
+    "p95_ms": 20.379564969334748,
+    "p99_ms": 27.248521000146862,
+    "mean_ms": 7.6984339012997225
+  },
+  "cost_per_1k_calls_usd": 0.0062,
+  "per_class_f1": {
+    "WISMO": 0.9989,
+    "RETURN_REQUEST": 1.0,
+    "EXCHANGE_REQUEST": 1.0,
+    "CANCEL_ORDER": 0.9979,
+    "DAMAGED_ITEM": 0.9989,
+    "BILLING_DISPUTE": 0.9985,
+    "PRODUCT_QUESTION": 1.0,
+    "ACCOUNT_ISSUE": 0.9995,
+    "OTHER": 0.9984
+  }
+}

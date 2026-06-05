@@ -1,0 +1,11 @@
+{
+  "model_name": "distilbert-base-uncased",
+  "max_length": 128,
+  "num_labels": 9,
+  "train_samples": 49156,
+  "val_samples": 6144,
+  "best_val_f1_weighted": 0.9990233358062525,
+  "best_val_accuracy": 0.9990234375,
+  "training_time_seconds": 651.4735,
+  "timestamp": "2026-06-05T11:38:15.459962"
+}

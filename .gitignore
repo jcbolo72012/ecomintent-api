@@ -1,0 +1,16 @@
+.env
+data/raw/
+data/synthetic/
+training/checkpoints/
+training/best_model/
+__pycache__/
+*.pyc
+.DS_Store
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.log
+training/logs/
+eval/confusion_matrix.png
