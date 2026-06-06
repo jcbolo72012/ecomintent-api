@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcomIntent &mdash; Auto Intent Tagger</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1e293b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      color: #334155;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    .page-wrapper {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ──────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .header-logo {
+      width: 38px;
+      height: 38px;
+      background: #3b82f6;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .header-logo svg { display: block; }
+    .header-text h1 { font-size: 18px; font-weight: 700; color: #f8fafc; line-height: 1.2; }
+    .header-text p  { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+    /* ── Card ────────────────────────────────────────── */
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #94a3b8;
+      margin-bottom: 18px;
+    }
+
+    /* ── Form ────────────────────────────────────────── */
+    .field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 7px;
+    }
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1e293b;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input[type="password"]:focus,
+    input[type="text"]:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .input-row input { flex: 1; min-width: 0; }
+
+    /* ── Buttons ─────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      text-decoration: none;
+      transition: opacity 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #2563eb;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+    }
+    .btn-secondary {
+      background: #f8fafc;
+      color: #334155;
+      border: 1.5px solid #e2e8f0;
+    }
+    .btn-secondary:hover:not(:disabled) { background: #f1f5f9; }
+    .btn-upgrade {
+      background: #f59e0b;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 12px 20px;
+      width: 100%;
+      border-radius: 9px;
+    }
+    .btn-upgrade:hover:not(:disabled) {
+      background: #d97706;
+      box-shadow: 0 2px 8px rgba(245,158,11,0.4);
+    }
+    .btn-save {
+      width: 100%;
+      font-size: 14px;
+      padding: 13px;
+      border-radius: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── Connection status ───────────────────────────── */
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 10px;
+      min-height: 22px;
+      font-size: 13px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.green { background: #10b981; }
+    .status-dot.red   { background: #ef4444; }
+    .status-dot.hidden { display: none; }
+    .status-text-green { color: #059669; font-weight: 600; }
+    .status-text-red   { color: #dc2626; }
+
+    /* ── Slider ──────────────────────────────────────── */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 4px;
+    }
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: #e2e8f0;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(59,130,246,0.5);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      border: 2px solid #fff;
+    }
+    .slider-value {
+      font-size: 16px;
+      font-weight: 800;
+      color: #3b82f6;
+      min-width: 46px;
+      text-align: right;
+    }
+    .slider-hint {
+      margin-top: 9px;
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    /* ── Intent toggles ──────────────────────────────── */
+    .intent-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 380px) {
+      .intent-grid { grid-template-columns: 1fr; }
+    }
+    .intent-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 13px;
+      background: #f8fafc;
+      border-radius: 9px;
+      border: 1.5px solid #e2e8f0;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .intent-row.active {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+    }
+    .intent-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      user-select: none;
+    }
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: #cbd5e1;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background: #3b82f6; }
+    .toggle-track::before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+    .toggle input:checked + .toggle-track::before { transform: translateX(16px); }
+    .toggle input:focus-visible + .toggle-track {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+    }
+
+    /* ── Plan ────────────────────────────────────────── */
+    .plan-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: #d1fae5;
+      color: #065f46;
+      border-radius: 9px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .plan-free-desc {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    /* ── Status bar ──────────────────────────────────── */
+    .status-bar {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    .status-bar-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #334155;
+      margin-bottom: 14px;
+    }
+    .status-stats {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+    .stat-item { display: flex; flex-direction: column; gap: 4px; }
+    .stat-label { font-size: 11px; color: #475569; font-weight: 500; }
+    .stat-value { font-size: 16px; font-weight: 700; color: #e2e8f0; }
+    .stat-value.green { color: #34d399; }
+    .stat-value.red   { color: #f87171; }
+
+    /* ── Toast ───────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(90px);
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+      white-space: nowrap;
+      max-width: calc(100vw - 32px);
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    #toast.success { background: #10b981; }
+    #toast.error   { background: #ef4444; }
+
+    /* ── Misc ────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+    }
+    .spinner-dark {
+      border-color: rgba(59,130,246,0.25);
+      border-top-color: #3b82f6;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .section-desc {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    hr.divider {
+      border: none;
+      border-top: 1.5px solid #f1f5f9;
+      margin: 18px 0;
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="header-logo">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="18" height="18" rx="4" fill="rgba(255,255,255,0.15)"/>
+        <path d="M7 11l3 3 5-6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>EcomIntent</h1>
+      <p>Auto Intent Tagger &mdash; Settings</p>
+    </div>
+  </div>
+
+  <!-- ── API Connection ── -->
+  <div class="card">
+    <div class="card-title">API Connection</div>
+    <label class="field-label" for="api-key-input">EcomIntent API Key</label>
+    <div class="input-row">
+      <input
+        type="password"
+        id="api-key-input"
+        placeholder="ecomintent-sk-••••••••••••••••"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="btn btn-secondary" id="test-btn" type="button">Test connection</button>
+    </div>
+    <div class="connection-status" id="connection-status" aria-live="polite">
+      <span class="status-dot hidden" id="status-dot" aria-hidden="true"></span>
+      <span id="status-text"></span>
+    </div>
+  </div>
+
+  <!-- ── Confidence Threshold ── -->
+  <div class="card">
+    <div class="card-title">Confidence Threshold</div>
+    <p class="section-desc">
+      Only tag tickets when the model confidence meets or exceeds this threshold.
+      Below this, the ticket receives an <strong>ei-unclassified</strong> tag instead.
+    </p>
+    <div class="slider-row">
+      <input
+        type="range"
+        id="threshold-slider"
+        min="0.50"
+        max="0.95"
+        step="0.05"
+        value="0.70"
+        aria-label="Confidence threshold"
+      />
+      <span class="slider-value" id="threshold-display">70%</span>
+    </div>
+    <div class="slider-hint">Range: 50%&ndash;95% &nbsp;&bull;&nbsp; Default: 70% &nbsp;&bull;&nbsp; Higher = more precise, fewer tags</div>
+  </div>
+
+  <!-- ── Intent Toggles ── -->
+  <div class="card">
+    <div class="card-title">Active Intents</div>
+    <p class="section-desc">
+      Enable or disable automatic tagging for each intent class.
+    </p>
+    <div class="intent-grid" id="intent-grid">
+      <!-- Populated by JavaScript -->
+    </div>
+  </div>
+
+  <!-- ── Plan ── -->
+  <div class="card">
+    <div class="card-title">Plan</div>
+    <div id="plan-content">
+      <!-- Populated by JavaScript -->
+    </div>
+  </div>
+
+  <!-- ── Webhook Activity ── -->
+  <div class="status-bar">
+    <div class="status-bar-title">Webhook Activity</div>
+    <div class="status-stats">
+      <div class="stat-item">
+        <span class="stat-label">Last processed</span>
+        <span class="stat-value" id="last-processed">&mdash;</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Success</span>
+        <span class="stat-value green" id="success-count">&mdash;</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Errors</span>
+        <span class="stat-value red" id="error-count">&mdash;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Save ── -->
+  <button class="btn btn-primary btn-save" id="save-btn" type="button">Save Settings</button>
+
+</div><!-- /.page-wrapper -->
+
+<!-- Toast notification -->
+<div id="toast" role="alert" aria-live="assertive"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Configuration ──────────────────────────────────────────────────────────
+  var BASE_URL = "https://john-72391--ecomintent-gorgias-app.modal.run";
+
+  var INTENT_LABELS = {
+    WISMO:            "WISMO",
+    RETURN_REQUEST:   "Return Request",
+    EXCHANGE_REQUEST: "Exchange Request",
+    CANCEL_ORDER:     "Cancel Order",
+    DAMAGED_ITEM:     "Damaged Item",
+    BILLING_DISPUTE:  "Billing Dispute",
+    PRODUCT_QUESTION: "Product Question",
+    ACCOUNT_ISSUE:    "Account Issue",
+    OTHER:            "Other"
+  };
+
+  var INTENT_KEYS = Object.keys(INTENT_LABELS);
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  var accountId = "";
+  var toastTimer = null;
+
+  // ── Utility ────────────────────────────────────────────────────────────────
+  function qs(id) { return document.getElementById(id); }
+
+  function getAccountId() {
+    try {
+      return new URLSearchParams(window.location.search).get("account") || "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function escapeAttr(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatTimestamp(iso) {
+    if (!iso) return "—";
+    try {
+      return new Date(iso).toLocaleString(undefined, {
+        month: "short", day: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      });
+    } catch (_) { return iso; }
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  function showToast(message, type) {
+    var el = qs("toast");
+    el.textContent = message;
+    el.className = "show " + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      el.className = "";
+    }, 3600);
+  }
+
+  // ── Connection status ──────────────────────────────────────────────────────
+  function setConnectionStatus(state, message) {
+    var dot  = qs("status-dot");
+    var text = qs("status-text");
+    dot.classList.remove("hidden", "green", "red");
+    text.className = "";
+    if (state === "success") {
+      dot.classList.add("green");
+      text.className = "status-text-green";
+    } else if (state === "error") {
+      dot.classList.add("red");
+      text.className = "status-text-red";
+    } else {
+      dot.classList.add("hidden");
+    }
+    text.textContent = message || "";
+  }
+
+  // ── Intent grid ────────────────────────────────────────────────────────────
+  function buildIntentGrid(enabledMap) {
+    var grid = qs("intent-grid");
+    grid.innerHTML = "";
+
+    INTENT_KEYS.forEach(function (key) {
+      var label   = INTENT_LABELS[key];
+      var enabled = enabledMap ? (enabledMap[key] !== false) : true;
+
+      var row = document.createElement("div");
+      row.className = "intent-row" + (enabled ? " active" : "");
+      row.id = "row-" + key;
+
+      var nameEl = document.createElement("span");
+      nameEl.className = "intent-name";
+      nameEl.textContent = label;
+
+      var toggleLabel = document.createElement("label");
+      toggleLabel.className = "toggle";
+      toggleLabel.setAttribute("title", (enabled ? "Disable " : "Enable ") + label);
+
+      var chk = document.createElement("input");
+      chk.type    = "checkbox";
+      chk.id      = "intent-" + key;
+      chk.checked = enabled;
+
+      var track = document.createElement("span");
+      track.className = "toggle-track";
+
+      // Closure to capture row and chk
+      (function (r, c) {
+        c.addEventListener("change", function () {
+          r.classList.toggle("active", c.checked);
+        });
+      }(row, chk));
+
+      toggleLabel.appendChild(chk);
+      toggleLabel.appendChild(track);
+      row.appendChild(nameEl);
+      row.appendChild(toggleLabel);
+      grid.appendChild(row);
+    });
+  }
+
+  // ── Plan section ───────────────────────────────────────────────────────────
+  function renderPlan(plan, stripeLink) {
+    var container = qs("plan-content");
+    if (plan === "pro") {
+      container.innerHTML =
+        '<div class="plan-badge">' +
+        '<svg width="18" height="18" fill="none" viewBox="0 0 18 18"><path d="M9 1.5l2 4.5h4.5l-3.6 2.6 1.4 4.4L9 10.5 4.7 13l1.4-4.4L2.5 6H7z" fill="#065f46"/></svg>' +
+        ' Pro Plan Active' +
+        '</div>';
+    } else {
+      var href = stripeLink || "#";
+      container.innerHTML =
+        '<p class="plan-free-desc">' +
+        'You are on the <strong>Free plan</strong> &mdash; 500 tagged tickets/month. ' +
+        'Upgrade to Pro for 50,000/month, priority routing, and full analytics.' +
+        '</p>' +
+        '<a href="' + escapeAttr(href) + '" target="_blank" rel="noopener noreferrer" class="btn btn-upgrade" role="button">' +
+        'Upgrade to Pro &mdash; $29/mo' +
+        '</a>';
+    }
+  }
+
+  // ── Load settings from server ──────────────────────────────────────────────
+  function loadSettings() {
+    accountId = getAccountId();
+
+    if (!accountId) {
+      showToast("No account ID in URL — settings cannot load.", "error");
+      buildIntentGrid(null);
+      renderPlan("free", null);
+      return;
+    }
+
+    fetch(BASE_URL + "/settings/" + encodeURIComponent(accountId), {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    })
+    .then(function (resp) {
+      if (!resp.ok) { throw new Error("HTTP " + resp.status); }
+      return resp.json();
+    })
+    .then(function (d) {
+      // API key: never echo the value, just indicate it's saved
+      if (d.api_key_set) {
+        qs("api-key-input").placeholder = "••••••••••••••••  (saved)";
+      }
+
+      // Threshold slider
+      var threshold = parseFloat(d.confidence_threshold) || 0.70;
+      qs("threshold-slider").value = threshold;
+      qs("threshold-display").textContent = Math.round(threshold * 100) + "%";
+
+      // Intents: server returns object {WISMO: true, ...}
+      buildIntentGrid(d.intents || null);
+
+      // Plan
+      renderPlan(d.plan || "free", d.stripe_payment_link || null);
+
+      // Webhook stats
+      qs("last-processed").textContent = formatTimestamp(d.last_webhook_at);
+      qs("success-count").textContent  = (d.webhook_success_count != null) ? String(d.webhook_success_count) : "0";
+      qs("error-count").textContent    = (d.webhook_error_count   != null) ? String(d.webhook_error_count)   : "0";
+    })
+    .catch(function (err) {
+      console.error("[EcomIntent] loadSettings error:", err);
+      buildIntentGrid(null);
+      renderPlan("free", null);
+      showToast("Could not load settings: " + err.message, "error");
+    });
+  }
+
+  // ── Test connection ────────────────────────────────────────────────────────
+  function testConnection() {
+    var apiKey = qs("api-key-input").value.trim();
+    if (!apiKey) {
+      setConnectionStatus("error", "Enter an API key to test.");
+      return;
+    }
+
+    var btn = qs("test-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner spinner-dark"></span>';
+    setConnectionStatus("", "Testing…");
+
+    fetch(BASE_URL + "/settings/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ api_key: apiKey })
+    })
+    .then(function (resp) {
+      return resp.json().then(function (data) {
+        return { status: resp.status, ok: resp.ok, data: data };
+      });
+    })
+    .then(function (r) {
+      if (r.ok && r.data.ok) {
+        var ver = r.data.model_version || "v1.0.0";
+        setConnectionStatus("success", "Connected — model " + ver);
+      } else {
+        var msg = (r.data && (r.data.detail || r.data.message)) || "Invalid API key.";
+        setConnectionStatus("error", msg);
+      }
+    })
+    .catch(function (err) {
+      setConnectionStatus("error", "Connection failed: " + err.message);
+    })
+    .finally(function () {
+      btn.disabled = false;
+      btn.textContent = "Test connection";
+    });
+  }
+
+  // ── Save settings ──────────────────────────────────────────────────────────
+  function saveSettings() {
+    if (!accountId) {
+      showToast("No account ID — cannot save.", "error");
+      return;
+    }
+
+    var rawKey    = qs("api-key-input").value.trim();
+    var threshold = parseFloat(qs("threshold-slider").value);
+
+    // Collect intent toggles
+    var intents = {};
+    INTENT_KEYS.forEach(function (key) {
+      var chk = qs("intent-" + key);
+      if (chk) { intents[key] = chk.checked; }
+    });
+
+    var payload = {
+      confidence_threshold: threshold,
+      intents: intents
+    };
+    if (rawKey) { payload.api_key = rawKey; }
+
+    var btn = qs("save-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>&nbsp;Saving…';
+
+    fetch(BASE_URL + "/settings/" + encodeURIComponent(accountId), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(function (resp) {
+      if (resp.ok) {
+        showToast("Settings saved successfully.", "success");
+        if (rawKey) {
+          qs("api-key-input").value = "";
+          qs("api-key-input").placeholder =
+            "••••••••••••••••  (saved)";
+        }
+        return null;
+      }
+      return resp.json().catch(function () { return {}; }).then(function (d) {
+        var msg = (d && (d.detail || d.message)) || ("Save failed (HTTP " + resp.status + ").");
+        showToast(msg, "error");
+      });
+    })
+    .catch(function (err) {
+      showToast("Save failed: " + err.message, "error");
+    })
+    .finally(function () {
+      btn.disabled = false;
+      btn.textContent = "Save Settings";
+    });
+  }
+
+  // ── Event listeners ────────────────────────────────────────────────────────
+  qs("test-btn").addEventListener("click", testConnection);
+  qs("save-btn").addEventListener("click", saveSettings);
+
+  qs("threshold-slider").addEventListener("input", function () {
+    qs("threshold-display").textContent = Math.round(parseFloat(this.value) * 100) + "%";
+  });
+
+  // ── Bootstrap ─────────────────────────────────────────────────────────────
+  loadSettings();
+
+}());
+</script>
+</body>
+</html>
