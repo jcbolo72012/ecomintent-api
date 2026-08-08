@@ -96,26 +96,48 @@ def log_classification(account_id: str, ticket_id: int, text: str, intent: str, 
 
 
 def extract_ticket_text(payload: dict) -> tuple[str, int]:
-    """Extract ticket body text and ticket ID from Gorgias webhook payload."""
-    ticket_id = 0
-    text = ""
+    """Extract ticket body text and ticket ID from the Gorgias webhook payload.
+
+    The integration's `form` config (see provisioning.py) sends a FLAT payload:
+      { "ticket_id": ..., "from_agent": ..., "body_text": ..., "subject": ... }
+    So we read those top-level fields directly. Falls back to the older nested
+    shapes just in case a differently-configured integration ever calls in.
+    """
+    import re
+
+    # Primary: the flat shape our `form` template produces
+    ticket_id = payload.get("ticket_id") or 0
+    text = payload.get("body_text") or ""
+
+    # Fallback: nested event/object shape (older/other integrations)
+    if not text and not ticket_id:
+        try:
+            obj = payload.get("event", {}).get("object") \
+                  or payload.get("data", {}).get("object", {})
+            ticket_id = obj.get("id", 0)
+            messages = obj.get("messages", [])
+            if messages:
+                m = messages[0]
+                text = m.get("body_text") or m.get("body_html", "")
+            if not text:
+                text = obj.get("subject", "")
+        except Exception:
+            pass
+
+    # Fall back to subject if body came through empty
+    if not text:
+        text = payload.get("subject", "")
+
+    # Strip HTML if we got an HTML body
+    if text and "<" in text:
+        text = re.sub(r"<[^>]+>", " ", text).strip()
+
+    # Coerce ticket_id to int (templates may deliver it as a string)
     try:
-        obj = payload.get("event", {}).get("object", payload.get("data", {}).get("object", {}))
-        ticket_id = obj.get("id", 0)
-        # Try message body first
-        messages = obj.get("messages", [])
-        if messages:
-            msg = messages[0]
-            text = msg.get("body_text") or msg.get("body_html", "")
-            # Strip basic HTML if body_text not available
-            if "<" in text:
-                import re
-                text = re.sub(r"<[^>]+>", " ", text).strip()
-        # Fall back to subject
-        if not text:
-            text = obj.get("subject", "")
-    except Exception:
-        pass
+        ticket_id = int(ticket_id)
+    except (ValueError, TypeError):
+        ticket_id = 0
+
     return text.strip()[:512], ticket_id
 
 

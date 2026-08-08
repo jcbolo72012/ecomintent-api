@@ -22,8 +22,20 @@ def register_webhook_integration(gorgias_domain: str, access_token: str, account
         "type": "http",
         "http": {
             "url": webhook_url,
-            # TODO(verify) trigger field + event slug:
-            "trigger_event": "ticket-message-created",
+            "method": "POST",
+            "request_content_type": "application/json",
+            "response_content_type": "application/json",
+            "triggers": {
+                "ticket-message-created": True,
+            },
+            # Gorgias templates the request body from ticket context.
+            # This sends the ticket id + latest message so the webhook can classify.
+            "form": {
+                "ticket_id": "{{ticket.id}}",
+                "from_agent": "{{ticket.messages[-1].from_agent}}",
+                "body_text": "{{ticket.messages[-1].body_text}}",
+                "subject": "{{ticket.subject}}",
+            },
         },
     }
     try:

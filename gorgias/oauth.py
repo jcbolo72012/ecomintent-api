@@ -48,9 +48,8 @@ def refresh_access_token(gorgias_domain: str, refresh_tok: str) -> dict | None:
             data={
                 "grant_type": "refresh_token",
                 "refresh_token": refresh_tok,
-                "client_id": GORGIAS_APP_ID,
-                "client_secret": GORGIAS_APP_SECRET,
             },
+            auth=(GORGIAS_APP_ID, GORGIAS_APP_SECRET),
             timeout=10,
         )
         if resp.status_code == 200:
@@ -116,10 +115,9 @@ async def callback(code: str = None, state: str = None, error: str = None):
         data={
             "grant_type": "authorization_code",
             "code": code,
-            "client_id": GORGIAS_APP_ID,
-            "client_secret": GORGIAS_APP_SECRET,
             "redirect_uri": REDIRECT_URI,
         },
+        auth=(GORGIAS_APP_ID, GORGIAS_APP_SECRET),  # HTTP Basic — client_secret_basic
         timeout=15,
     )
     if resp.status_code != 200:
