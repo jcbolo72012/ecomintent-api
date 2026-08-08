@@ -8,6 +8,8 @@ import time
 import hmac
 import hashlib
 import httpx
+import secrets as _secrets
+from urllib.parse import urlencode
 from pathlib import Path
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
@@ -85,13 +87,15 @@ async def authorize(account: str):
     """Kick off OAuth flow. account = Gorgias subdomain (e.g. 'mystore')."""
     if not account:
         raise HTTPException(400, "account parameter required")
-    url = (
-        f"https://{account}.gorgias.com/oauth/authorize"
-        f"?response_type=code"
-        f"&client_id={GORGIAS_APP_ID}"
-        f"&redirect_uri={REDIRECT_URI}"
-        f"&state={account}"
-    )
+    params = {
+        "response_type": "code",
+        "client_id": GORGIAS_APP_ID,
+        "scope": "openid email profile offline write:all",
+        "redirect_uri": REDIRECT_URI,
+        "state": account,
+        "nonce": _secrets.token_hex(8),
+    }
+    url = f"https://{account}.gorgias.com/oauth/authorize?{urlencode(params)}"
     return RedirectResponse(url)
 
 

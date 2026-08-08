@@ -27,19 +27,57 @@ LOG_DIR = Path("/gorgias/logs")
 
 logger = logging.getLogger("ecomintent.gorgias.webhook")
 
+WEBHOOK_SECRET_FILE = Path("/gorgias/webhook_secret.txt")
+
+
+def _candidate_secrets() -> dict[str, str]:
+    """
+    All secrets Gorgias *might* be signing with. Used during verification to
+    determine the real one. Returns {label: secret} for non-empty candidates.
+    """
+    candidates = {}
+    if GORGIAS_APP_SECRET:
+        candidates["app_secret"] = GORGIAS_APP_SECRET
+    try:
+        if WEBHOOK_SECRET_FILE.exists():
+            file_secret = WEBHOOK_SECRET_FILE.read_text().strip()
+            if file_secret:
+                candidates["file_secret"] = file_secret
+    except OSError:
+        pass
+    return candidates
+
 
 def verify_signature(body: bytes, signature_header: str) -> bool:
-    """Validate Gorgias HMAC-SHA256 webhook signature."""
+    """Validate Gorgias HMAC-SHA256 webhook signature.
+
+    DIAGNOSTIC MODE: tries every candidate secret and logs which one matched.
+    Once you've confirmed the real secret from the logs, collapse this back to a
+    single hmac.compare_digest against that secret.
+    """
     if not signature_header:
+        logger.warning("No signature header present on webhook")
         return False
-    expected = base64.b64encode(
-        hmac.new(
-            GORGIAS_APP_SECRET.encode(),
-            body,
-            hashlib.sha256,
-        ).digest()
-    ).decode()
-    return hmac.compare_digest(expected, signature_header)
+
+    candidates = _candidate_secrets()
+    if not candidates:
+        logger.error("No webhook secret configured at all")
+        return False
+
+    for label, secret in candidates.items():
+        expected = base64.b64encode(
+            hmac.new(secret.encode(), body, hashlib.sha256).digest()
+        ).decode()
+        if hmac.compare_digest(expected, signature_header):
+            logger.info("Webhook signature matched using: %s", label)
+            return True
+
+    logger.warning(
+        "Webhook signature matched NO candidate. Tried: %s. "
+        "Header value (first 16 chars): %s",
+        list(candidates.keys()), signature_header[:16],
+    )
+    return False
 
 
 def log_classification(account_id: str, ticket_id: int, text: str, intent: str, confidence: float, success: bool):
