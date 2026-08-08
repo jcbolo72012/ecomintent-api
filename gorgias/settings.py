@@ -69,7 +69,13 @@ def save_settings(account_id: str, data: dict):
 
 @router.get("/settings/{account_id}")
 async def get_settings(account_id: str):
-    return load_settings(account_id)
+    settings = load_settings(account_id)
+    # Inject payment link with account_id so Stripe can match payment to merchant
+    base_link = os.environ.get(
+        "STRIPE_PAYMENT_LINK", "https://buy.stripe.com/00waEY1Cr6081mT3qWcMM00"
+    )
+    settings["stripe_payment_link"] = f"{base_link}?client_reference_id={account_id}"
+    return settings
 
 
 @router.post("/settings/{account_id}")

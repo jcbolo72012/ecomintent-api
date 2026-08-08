@@ -37,7 +37,7 @@ image = (
         "pydantic==2.10.4",
         "httpx==0.27.0",
         "python-dotenv==1.0.1",
-        "stripe==11.1.0",
+        "stripe==11.1.0",  # already included
         "python-multipart==0.0.20",
         "itsdangerous==2.2.0",   # HMAC signing helper
     ])

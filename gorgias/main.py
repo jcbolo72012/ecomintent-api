@@ -97,9 +97,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 # tracebacks rather than crashing before the logging setup above runs.
 
 try:
-    from gorgias.oauth import router as oauth_router        # noqa: E402
-    from gorgias.settings import router as settings_router  # noqa: E402
-    from gorgias.webhook import router as webhook_router    # noqa: E402
+    from gorgias.oauth import router as oauth_router                  # noqa: E402
+    from gorgias.settings import router as settings_router            # noqa: E402
+    from gorgias.webhook import router as webhook_router              # noqa: E402
+    from gorgias.stripe_webhook import router as stripe_router        # noqa: E402
 except ImportError as e:
     logger.error("Failed to import sub-router: %s", e)
     raise
@@ -107,6 +108,7 @@ except ImportError as e:
 app.include_router(oauth_router,    tags=["OAuth"])
 app.include_router(settings_router, tags=["Settings"])
 app.include_router(webhook_router,  tags=["Webhook"])
+app.include_router(stripe_router,   tags=["Stripe"])
 
 
 # ── Core endpoints ────────────────────────────────────────────────────────────
