@@ -137,4 +137,10 @@ async def callback(code: str = None, state: str = None, error: str = None):
         "expires_at": time.time() + token_data.get("expires_in", 604800),
     })
 
+    # ── NEW: register the webhook so Gorgias starts sending ticket events ──
+    from gorgias.provisioning import register_webhook_integration
+    register_webhook_integration(
+        gorgias_domain, token_data["access_token"], account_id
+    )
+
     return RedirectResponse(f"{APP_BASE_URL}/settings?account={account_id}")

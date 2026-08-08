@@ -82,18 +82,28 @@ def extract_ticket_text(payload: dict) -> tuple[str, int]:
 
 
 def apply_tag(gorgias_domain: str, access_token: str, ticket_id: int, tag: str) -> bool:
-    """Apply an intent tag to a Gorgias ticket."""
+    """Apply an intent tag to a Gorgias ticket.
+
+    Confirmed endpoint: POST /api/tickets/{ticket_id}/tags  body {"names": [...]}
+    Tags are created on the fly if they don't exist yet, so no pre-provisioning
+    of the tag itself is strictly required for the tag to apply.
+    """
     try:
-        resp = httpx.put(
-            f"https://{gorgias_domain}/api/tickets/{ticket_id}",
+        resp = httpx.post(
+            f"https://{gorgias_domain}/api/tickets/{ticket_id}/tags",
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json",
             },
-            json={"tags": [{"name": tag}]},
+            json={"names": [tag]},
             timeout=8,
         )
-        return resp.status_code in (200, 201)
+        if resp.status_code not in (200, 201, 204):
+            logger.error(
+                "Tag apply failed for ticket %s: %s %s",
+                ticket_id, resp.status_code, resp.text,
+            )
+        return resp.status_code in (200, 201, 204)
     except Exception as e:
         logger.error(f"Tag apply failed for ticket {ticket_id}: {e}")
         return False
@@ -106,6 +116,10 @@ async def receive_webhook(account_id: str, request: Request):
     Always returns 200 to prevent Gorgias from disabling the webhook.
     """
     body = await request.body()
+
+    # TEMPORARY debug — remove after confirming signature model in sandbox
+    logger.info("WEBHOOK HEADERS: %s", dict(request.headers))
+    logger.info("WEBHOOK BODY: %s", body[:1000])
 
     # Validate signature
     sig = request.headers.get("X-Gorgias-Hmac-Sha256", "")
