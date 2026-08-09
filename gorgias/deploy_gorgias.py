@@ -67,7 +67,7 @@ gorgias_secret = modal.Secret.from_name("ecomintent-gorgias-secrets")
     secrets=[gorgias_secret],
     scaledown_window=300,        # Scale to zero after 5 min idle
     timeout=30,
-    min_containers=0,
+    min_containers=1,
 )
 @modal.concurrent(max_inputs=100)
 @modal.asgi_app()
