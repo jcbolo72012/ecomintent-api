@@ -26,6 +26,7 @@ image = (
 )
 
 model_volume = modal.Volume.from_name("ecomintent-model-weights", create_if_missing=True)
+settings_volume = modal.Volume.from_name("ecomintent-settings", create_if_missing=True)
 hf_secret = modal.Secret.from_name("huggingface-token")
 
 
@@ -33,7 +34,10 @@ hf_secret = modal.Secret.from_name("huggingface-token")
     image=image,
     gpu="A10G",
     scaledown_window=300,  # scale to zero after 5 min idle
-    volumes={"/model": model_volume},
+    volumes={
+        "/model": model_volume,
+        "/settings": settings_volume,
+    },
     secrets=[hf_secret],
     timeout=60,
 )

@@ -49,7 +49,46 @@ def create_tags(gorgias_domain: str, access_token: str, account_id: str) -> int:
     return ok
 
 
+def _delete_existing_ecomintent_integrations(gorgias_domain: str, access_token: str, account_id: str) -> int:
+    """Find and delete any pre-existing EcomIntent HTTP integrations so we don't
+    stack duplicates on re-auth. Returns count deleted."""
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    deleted = 0
+    try:
+        resp = httpx.get(
+            f"https://{gorgias_domain}/api/integrations",
+            headers=headers,
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            logger.warning("Could not list integrations for %s: %s", account_id, resp.status_code)
+            return 0
+        data = resp.json()
+        items = data.get("data", data) if isinstance(data, dict) else data
+        for integ in items:
+            if integ.get("name") == "EcomIntent" and integ.get("type") == "http":
+                iid = integ.get("id")
+                if iid is None:
+                    continue
+                d = httpx.delete(
+                    f"https://{gorgias_domain}/api/integrations/{iid}",
+                    headers=headers,
+                    timeout=10,
+                )
+                if d.status_code in (200, 204):
+                    deleted += 1
+                    logger.info("Deleted old EcomIntent integration %s for %s", iid, account_id)
+                else:
+                    logger.warning("Failed to delete integration %s for %s: %s", iid, account_id, d.status_code)
+    except Exception as e:
+        logger.warning("Error cleaning old integrations for %s: %s", account_id, e)
+    return deleted
+
+
 def register_webhook_integration(gorgias_domain: str, access_token: str, account_id: str) -> bool:
+
+    _delete_existing_ecomintent_integrations(gorgias_domain, access_token, account_id)
+
     webhook_url = f"{APP_BASE_URL}/gorgias/webhook/{account_id}"
     payload = {
         "name": "EcomIntent",

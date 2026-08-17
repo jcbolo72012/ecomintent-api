@@ -9,6 +9,7 @@ import time
 import uuid
 import logging
 import os
+import hashlib
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -90,6 +91,68 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+SETTINGS_DIR = Path("/settings/users")
+LOGS_DIR = Path("/settings/logs")
+
+
+def _user_id(request: Request) -> str:
+    """RapidAPI injects X-RapidAPI-User on every proxied request.
+    Fall back to a hashed IP for direct/dev calls. Never returns a raw IP."""
+    ru = request.headers.get("X-RapidAPI-User")
+    if ru:
+        return f"rapid_{ru}"
+    ip = request.client.host if request.client else "unknown"
+    return f"direct_{hashlib.md5(ip.encode()).hexdigest()[:12]}"
+
+
+def _settings_path(user_id: str) -> Path:
+    safe = hashlib.md5(user_id.encode()).hexdigest()
+    return SETTINGS_DIR / f"{safe}.json"
+
+
+def _load_settings(user_id: str) -> dict:
+    p = _settings_path(user_id)
+    if p.exists():
+        try:
+            with open(p) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+    return {"opt_in": False, "created_at": None, "updated_at": None}
+
+
+def _save_settings(user_id: str, settings: dict):
+    from datetime import datetime, timezone
+    SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(timezone.utc).isoformat()
+    settings["updated_at"] = now
+    settings.setdefault("created_at", now)
+    p = _settings_path(user_id)
+    tmp = p.with_suffix(".tmp")
+    with open(tmp, "w") as f:
+        json.dump(settings, f)
+    tmp.replace(p)  # atomic, overwrites on both POSIX and Windows
+
+
+def _is_opted_in(user_id: str) -> bool:
+    return _load_settings(user_id).get("opt_in", False)
+
+
+def _log_low_confidence(user_id: str, text: str, intent: str, confidence: float):
+    """Store a HASHED low-confidence example. Only called when opted in.
+    Raw text is never written — only its MD5 hash."""
+    from datetime import datetime, timezone
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    safe = hashlib.md5(user_id.encode()).hexdigest()
+    entry = {
+        "text_hash": hashlib.md5(text.lower().strip().encode()).hexdigest(),
+        "intent": intent,
+        "confidence": round(confidence, 4),
+        "ts": datetime.now(timezone.utc).isoformat(),
+    }
+    with open(LOGS_DIR / f"{safe}.jsonl", "a") as f:
+        f.write(json.dumps(entry) + "\n")
+
 
 class ClassifyRequest(BaseModel):
     text: str = Field(..., description="Support ticket text to classify", min_length=1)
@@ -126,6 +189,10 @@ class BatchClassifyResponse(BaseModel):
     count: int
     request_id: str
     total_latency_ms: float
+
+
+class SettingsBody(BaseModel):
+    opt_in: bool = Field(..., description="True to opt into anonymised training data collection")
 
 
 def run_inference(text: str, threshold: float) -> dict:
@@ -169,6 +236,40 @@ async def get_intents():
     }
 
 
+@app.get("/settings")
+async def get_settings(request: Request):
+    uid = _user_id(request)
+    s = _load_settings(uid)
+    return {"opt_in": s.get("opt_in", False),
+            "message": "Opted in" if s.get("opt_in") else "Not opted in (default)"}
+
+
+@app.post("/settings")
+async def update_settings(request: Request, body: SettingsBody):
+    uid = _user_id(request)
+    s = _load_settings(uid)
+    s["opt_in"] = body.opt_in
+    _save_settings(uid, s)
+    return {"opt_in": body.opt_in,
+            "message": f"Successfully {'opted in' if body.opt_in else 'opted out'}. Effective immediately."}
+
+
+@app.delete("/settings/data")
+async def delete_training_data(request: Request):
+    from datetime import datetime, timezone
+    uid = _user_id(request)
+    safe = hashlib.md5(uid.encode()).hexdigest()
+    log_file = LOGS_DIR / f"{safe}.jsonl"
+    n = 0
+    if log_file.exists():
+        with open(log_file) as f:
+            n = sum(1 for _ in f)
+        log_file.unlink()
+    return {"deleted": True, "examples_deleted": n,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "message": f"Deleted {n} stored examples. Raw text was never stored."}
+
+
 @app.post("/classify", response_model=ClassifyResponse)
 @limiter.limit("100/second")
 async def classify(request: Request, body: ClassifyRequest):
@@ -178,8 +279,15 @@ async def classify(request: Request, body: ClassifyRequest):
     result = run_inference(body.text, body.threshold)
     latency_ms = round((time.perf_counter() - t0) * 1000, 2)
 
+    # Opt-in gated training-data capture. Default OFF — nothing hits disk unless
+    # the user explicitly opted in. Only a HASH is stored, never raw text.
     if result["confidence"] < 0.75:
-        logger.info(f"LOW_CONFIDENCE | rid={request_id} | conf={result['confidence']:.3f} | intent={result['intent']}")
+        uid = _user_id(request)
+        if _is_opted_in(uid):
+            try:
+                _log_low_confidence(uid, body.text, result["intent"], result["confidence"])
+            except Exception as e:
+                logger.warning(f"opt-in log write failed: {e}")  # never affect the response
 
     return ClassifyResponse(**result, request_id=request_id, latency_ms=latency_ms)
 
@@ -190,10 +298,18 @@ async def classify_batch(request: Request, body: ClassifyBatchRequest):
     request_id = str(uuid.uuid4())[:8]
     t0 = time.perf_counter()
 
+    uid = _user_id(request)
+    should_log = _is_opted_in(uid)
+
     results = []
     for text in body.texts:
         text_clean = text[:MAX_TEXT_LENGTH].strip()
         r = run_inference(text_clean, body.threshold)
+        if should_log and r["confidence"] < 0.75:
+            try:
+                _log_low_confidence(uid, text_clean, r["intent"], r["confidence"])
+            except Exception as e:
+                logger.warning(f"batch opt-in log write failed: {e}")
         results.append(ClassifyResponse(**r, request_id=request_id, latency_ms=0))
 
     total_ms = round((time.perf_counter() - t0) * 1000, 2)
