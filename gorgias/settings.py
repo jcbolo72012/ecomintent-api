@@ -67,6 +67,26 @@ def save_settings(account_id: str, data: dict):
         json.dump(data, f, indent=2)
 
 
+@router.post("/settings/test")
+async def test_connection(body: TestConnectionRequest):
+    """Test that the EcomIntent API is reachable and responding."""
+    try:
+        resp = httpx.get(
+            f"{INFERENCE_API_URL}/health",
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return {
+                "status": "ok",
+                "message": f"Connected — model v{data.get('version', '1.0.0')}",
+                "device": data.get("device", "unknown"),
+            }
+        return {"status": "error", "message": f"API returned {resp.status_code}"}
+    except Exception as e:
+        return {"status": "error", "message": f"Connection failed: {str(e)}"}
+
+
 @router.get("/settings/{account_id}")
 async def get_settings(account_id: str):
     settings = load_settings(account_id)
@@ -92,21 +112,3 @@ async def update_settings(account_id: str, body: SettingsUpdate):
     return {"status": "saved", "settings": settings}
 
 
-@router.post("/settings/test")
-async def test_connection(body: TestConnectionRequest):
-    """Test that the EcomIntent API is reachable and responding."""
-    try:
-        resp = httpx.get(
-            f"{INFERENCE_API_URL}/health",
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            return {
-                "status": "ok",
-                "message": f"Connected — model v{data.get('version', '1.0.0')}",
-                "device": data.get("device", "unknown"),
-            }
-        return {"status": "error", "message": f"API returned {resp.status_code}"}
-    except Exception as e:
-        return {"status": "error", "message": f"Connection failed: {str(e)}"}
