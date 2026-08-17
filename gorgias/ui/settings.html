@@ -722,7 +722,7 @@
         var msg = (r.data && (r.data.detail || r.data.message)) || "Invalid API key.";
         setConnectionStatus("error", msg);
       }
-    }
+    })
     .catch(function (err) {
       setConnectionStatus("error", "Connection failed: " + err.message);
     })
